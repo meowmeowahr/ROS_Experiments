@@ -15,7 +15,6 @@ def main():
     
     while True:
         # Generating the X and Y axis data points
-        print(ranges)
         r = ranges
         theta = []
         for index in range(len(r)):
