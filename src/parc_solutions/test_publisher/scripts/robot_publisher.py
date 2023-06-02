@@ -5,7 +5,7 @@ import rospy
 from sensor_msgs.msg import LaserScan
 
 import matplotlib.pyplot as plt
-import numpy  as np
+import numpy as np
 import math
 
 
@@ -25,7 +25,7 @@ def main():
         plt.polar(theta,r,marker='o', mfc='r', mec='r', ms=2, color='#00000000')
 
         # Setting the axis limit
-        ax.set_ylim(0, 20)
+        ax.set_ylim(0, 16)
 
         # Displaying the plot
         plt.draw()
