@@ -1,12 +1,8 @@
 #!/usr/bin/env python
 
-import random
+import matplotlib.pyplot as plt
 import rospy
 from sensor_msgs.msg import LaserScan
-
-import matplotlib.pyplot as plt
-import numpy as np
-import math
 
 
 def main():
