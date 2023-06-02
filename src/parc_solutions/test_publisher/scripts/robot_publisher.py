@@ -22,7 +22,7 @@ def main():
 
         # plotting the polar coordinates on the system
         plt.cla()
-        plt.polar(theta,r,marker='o', mfc='r', mec='r', ms=2, color='#00000000')
+        plt.polar(theta, r, marker='o', mfc='r', mec='r', ms=1, color='#00000000')
 
         # Setting the axis limit
         ax.set_ylim(0, 16)
