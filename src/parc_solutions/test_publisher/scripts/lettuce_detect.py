@@ -1,10 +1,16 @@
 #!/usr/bin/env python
-import rospy
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
+
+"""
+Kevin's Lettuce Detector
+"""
+
+import time
 
 import cv2
 import numpy as np
+import rospy
+from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image
 
 bridge = CvBridge()
 
@@ -21,7 +27,7 @@ def start_node():
 
 
 def image_callback_l(msg):
-    print("Got Left")
+    print("Got Left", time.time())
     global left_raw_image
 
     try:
@@ -32,8 +38,11 @@ def image_callback_l(msg):
 
 
 def image_callback_r(msg):
-    print("Got Right")
-    global right_raw_image
+    print("Got Right", time.time())
+    global right_raw_image, last_frame_time
+
+    fps = 1 / (time.time() - last_frame_time)
+    last_frame_time = time.time()
 
     try:
         right_raw_image = bridge.imgmsg_to_cv2(msg, "bgr8")
@@ -92,7 +101,7 @@ def image_callback_r(msg):
         # ObjectCounter:
         lettuce_count = len(contours)
 
-        for _, c in enumerate(contours):
+        for c in contours:
             # Get the contour's bounding rectangle:
             bound_rect = cv2.boundingRect(c)
 
@@ -126,6 +135,12 @@ def image_callback_r(msg):
                                      cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2,
                                      cv2.LINE_AA)
 
+        # FPS
+        visual = cv2.putText(visual, f"{round(fps, 2)} FPS", (0, 20),
+                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                                     (0, 255, 255), 2,
+                                     cv2.LINE_AA)
+
         cv2.imshow("mask", mask)
         cv2.imshow("visual", visual)
         cv2.imshow("raw_combined", combined_image)
@@ -137,6 +152,7 @@ def image_callback_r(msg):
 if __name__ == '__main__':
     left_raw_image = None
     right_raw_image = None
+    last_frame_time = 0
 
     try:
         start_node()
