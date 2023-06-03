@@ -8,7 +8,7 @@ import numpy as np
 
 bridge = CvBridge()
 
-MIN_LETTUCE_AREA = 400
+MIN_LETTUCE_AREA = 4000
 
 
 def start_node():
@@ -18,12 +18,11 @@ def start_node():
 
 def image_callback_l(msg):
     print("Got Left")
-    global left_image
+    global left_raw_image
 
     try:
         # Convert your ROS Image message to OpenCV2
-        left_image = bridge.imgmsg_to_cv2(msg, "bgr8")
-        left_image = cv2.rotate(left_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        left_raw_image = bridge.imgmsg_to_cv2(msg, "bgr8")
     except CvBridgeError as e:
         print(e)
 
@@ -33,9 +32,8 @@ def image_callback_r(msg):
 
     try:
         right_raw_image = bridge.imgmsg_to_cv2(msg, "bgr8")
-        right_raw_image = cv2.rotate(right_raw_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
-        combined_image = cv2.hconcat([left_image, right_raw_image])
+        combined_image = cv2.hconcat([cv2.rotate(left_raw_image, cv2.ROTATE_90_COUNTERCLOCKWISE), cv2.rotate(right_raw_image, cv2.ROTATE_90_COUNTERCLOCKWISE)])
 
         # convert to hsv colorspace
         hsv = cv2.cvtColor(combined_image, cv2.COLOR_BGR2HSV)
@@ -59,7 +57,7 @@ def image_callback_r(msg):
         visual = cv2.cvtColor(visual, cv2.COLOR_GRAY2BGR)
 
         # Find the contours on the binary image:
-        contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         # Store bounding rectangles and object id here:
         object_data = []
@@ -69,24 +67,27 @@ def image_callback_r(msg):
 
         for _, c in enumerate(contours):
             # Get the contour's bounding rectangle:
-            boundRect = cv2.boundingRect(c)
+            bound_rect = cv2.boundingRect(c)
 
             # Filter out objects with small area
-            bound_area = (boundRect[0] - boundRect[2]) * (boundRect[1] - boundRect[3])
+            bound_area = bound_rect[2] * bound_rect[3]
             if abs(bound_area) > MIN_LETTUCE_AREA:
                 # Store in list:
-                object_data.append((lettuce_count, boundRect))
+                object_data.append((lettuce_count, bound_rect))
 
                 # Get the dimensions of the bounding rect:
-                rectX = boundRect[0]
-                rectY = boundRect[1]
-                rectWidth = boundRect[2]
-                rectHeight = boundRect[3]
+                rectX = bound_rect[0]
+                rectY = bound_rect[1]
+                rectWidth = bound_rect[2]
+                rectHeight = bound_rect[3]
 
                 # Draw bounding rect:
                 color = (0, 0, 255)
                 cv2.rectangle(visual, (int(rectX), int(rectY)),
                             (int(rectX + rectWidth), int(rectY + rectHeight)), color, 2)
+                
+                # Add text
+                visual = cv2.putText(visual, str(bound_area), (int(rectX) + 8, int(rectY) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2, cv2.LINE_AA)
 
 
         cv2.imshow("mask", mask)
@@ -97,7 +98,7 @@ def image_callback_r(msg):
         print(e)
 
 if __name__ == '__main__':
-    left_image = None
+    left_raw_image = None
     right_raw_image = None
 
     try:
