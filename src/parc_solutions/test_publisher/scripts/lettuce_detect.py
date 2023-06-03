@@ -141,7 +141,6 @@ def image_callback_r(msg):
                                      (0, 255, 255), 2,
                                      cv2.LINE_AA)
 
-        cv2.imshow("mask", mask)
         cv2.imshow("visual", visual)
         cv2.imshow("raw_combined", combined_image)
         cv2.waitKey(20)
