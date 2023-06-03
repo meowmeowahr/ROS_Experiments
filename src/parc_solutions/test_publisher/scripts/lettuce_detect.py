@@ -8,7 +8,7 @@ import numpy as np
 
 bridge = CvBridge()
 
-MIN_LETTUCE_AREA = 4000
+MIN_LETTUCE_AREA = 6000
 
 
 def start_node():
@@ -60,7 +60,8 @@ def image_callback_r(msg):
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         # Store bounding rectangles and object id here:
-        object_data = []
+        left_object_data = []
+        right_object_data = []
 
         # ObjectCounter:
         lettuce_count = len(contours)
@@ -72,17 +73,21 @@ def image_callback_r(msg):
             # Filter out objects with small area
             bound_area = bound_rect[2] * bound_rect[3]
             if abs(bound_area) > MIN_LETTUCE_AREA:
-                # Store in list:
-                object_data.append((lettuce_count, bound_rect))
-
                 # Get the dimensions of the bounding rect:
                 rectX = bound_rect[0]
                 rectY = bound_rect[1]
                 rectWidth = bound_rect[2]
                 rectHeight = bound_rect[3]
 
+                # Store in list:
+                if rectX in range(left_raw_image.shape[0]):
+                    left_object_data.append((lettuce_count, bound_rect))
+                    color = (0, 0, 255)
+                else:
+                    right_object_data.append((lettuce_count, bound_rect))
+                    color = (255, 0, 0)
+
                 # Draw bounding rect:
-                color = (0, 0, 255)
                 cv2.rectangle(visual, (int(rectX), int(rectY)),
                             (int(rectX + rectWidth), int(rectY + rectHeight)), color, 2)
                 
