@@ -75,6 +75,12 @@ def image_callback_r(msg):
                                 int(visual.shape[0] // 2 + ROBOT_HEIGHT // 2)
                                 + ROBOT_OFFSET_FROM_TOP), (0, 255, 0), 2)
 
+        robot_top_center = (visual.shape[1] // 2,
+                            int(visual.shape[0] // 2 - ROBOT_HEIGHT // 2)
+                            + ROBOT_OFFSET_FROM_TOP)
+
+        visual = cv2.circle(visual, robot_top_center, 10, (255, 255, 0), -1)
+
         # Find the contours on the binary image:
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,
                                        cv2.CHAIN_APPROX_SIMPLE)
