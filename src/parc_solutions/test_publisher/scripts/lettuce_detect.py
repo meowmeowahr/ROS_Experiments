@@ -10,6 +10,10 @@ bridge = CvBridge()
 
 MIN_LETTUCE_AREA = 6000
 
+ROBOT_WIDTH = 350
+ROBOT_HEIGHT = 505
+ROBOT_OFFSET_FROM_TOP = 12
+
 
 def start_node():
     rospy.init_node('image_pub')
@@ -26,6 +30,7 @@ def image_callback_l(msg):
     except CvBridgeError as e:
         print(e)
 
+
 def image_callback_r(msg):
     print("Got Right")
     global right_raw_image
@@ -33,20 +38,25 @@ def image_callback_r(msg):
     try:
         right_raw_image = bridge.imgmsg_to_cv2(msg, "bgr8")
 
-        combined_image = cv2.hconcat([cv2.rotate(left_raw_image, cv2.ROTATE_90_COUNTERCLOCKWISE), cv2.rotate(right_raw_image, cv2.ROTATE_90_COUNTERCLOCKWISE)])
+        combined_image = cv2.hconcat([
+            cv2.rotate(left_raw_image,
+                       cv2.ROTATE_90_COUNTERCLOCKWISE),
+            cv2.rotate(right_raw_image,
+                       cv2.ROTATE_90_COUNTERCLOCKWISE)
+            ])
 
         # convert to hsv colorspace
         hsv = cv2.cvtColor(combined_image, cv2.COLOR_BGR2HSV)
 
         # lower bound and upper bound for Green color
-        lower_bound = np.array([40, 20, 20])	 
+        lower_bound = np.array([40, 20, 20])
         upper_bound = np.array([80, 255, 255])
 
         # find the colors within the boundaries
         mask = cv2.inRange(hsv, lower_bound, upper_bound)
 
-        #define kernel size  
-        kernel = np.ones((7,7),np.uint8)
+        # define kernel size
+        kernel = np.ones((7, 7), np.uint8)
 
         # Remove unnecessary noise from mask
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
@@ -56,9 +66,19 @@ def image_callback_r(msg):
         visual = mask.copy()
         visual = cv2.cvtColor(visual, cv2.COLOR_GRAY2BGR)
 
+        # Generate robot
+        visual = cv2.rectangle(visual,
+                               (int(visual.shape[1] // 2 - ROBOT_WIDTH // 2),
+                                int(visual.shape[0] // 2 - ROBOT_HEIGHT // 2)
+                                + ROBOT_OFFSET_FROM_TOP),
+                               (int(visual.shape[1] // 2 + ROBOT_WIDTH // 2),
+                                int(visual.shape[0] // 2 + ROBOT_HEIGHT // 2)
+                                + ROBOT_OFFSET_FROM_TOP), (0, 255, 0), 2)
+
         # Find the contours on the binary image:
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,
+                                       cv2.CHAIN_APPROX_SIMPLE)
+
         # Store bounding rectangles and object id here:
         left_object_data = []
         right_object_data = []
@@ -88,12 +108,17 @@ def image_callback_r(msg):
                     color = (255, 0, 0)
 
                 # Draw bounding rect:
-                cv2.rectangle(visual, (int(rectX), int(rectY)),
-                            (int(rectX + rectWidth), int(rectY + rectHeight)), color, 2)
-                
-                # Add text
-                visual = cv2.putText(visual, str(bound_area), (int(rectX) + 8, int(rectY) + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2, cv2.LINE_AA)
+                cv2.rectangle(visual,
+                              (int(rectX), int(rectY)),
+                              (int(rectX + rectWidth),
+                               int(rectY + rectHeight)),
+                              color, 2)
 
+                # Add text
+                visual = cv2.putText(visual, str(bound_area),
+                                     (int(rectX) + 8, int(rectY) + 20),
+                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2,
+                                     cv2.LINE_AA)
 
         cv2.imshow("mask", mask)
         cv2.imshow("visual", visual)
@@ -101,6 +126,7 @@ def image_callback_r(msg):
         cv2.waitKey(20)
     except CvBridgeError as e:
         print(e)
+
 
 if __name__ == '__main__':
     left_raw_image = None
