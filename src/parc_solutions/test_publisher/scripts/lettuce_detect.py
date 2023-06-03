@@ -8,10 +8,12 @@ import numpy as np
 
 bridge = CvBridge()
 
+MIN_LETTUCE_AREA = 400
+
+
 def start_node():
     rospy.init_node('image_pub')
     rospy.loginfo('image_pub node started')
-    print(rospy.get_published_topics())
 
 
 def image_callback_l(msg):
@@ -39,7 +41,7 @@ def image_callback_r(msg):
         hsv = cv2.cvtColor(combined_image, cv2.COLOR_BGR2HSV)
 
         # lower bound and upper bound for Green color
-        lower_bound = np.array([40, 10, 15])	 
+        lower_bound = np.array([40, 20, 20])	 
         upper_bound = np.array([80, 255, 255])
 
         # find the colors within the boundaries
@@ -52,7 +54,43 @@ def image_callback_r(msg):
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
 
+        # Generate axis lines
+        visual = mask.copy()
+        visual = cv2.cvtColor(visual, cv2.COLOR_GRAY2BGR)
+
+        # Find the contours on the binary image:
+        contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # Store bounding rectangles and object id here:
+        object_data = []
+
+        # ObjectCounter:
+        lettuce_count = len(contours)
+
+        for _, c in enumerate(contours):
+            # Get the contour's bounding rectangle:
+            boundRect = cv2.boundingRect(c)
+
+            # Filter out objects with small area
+            bound_area = (boundRect[0] - boundRect[2]) * (boundRect[1] - boundRect[3])
+            if abs(bound_area) > MIN_LETTUCE_AREA:
+                # Store in list:
+                object_data.append((lettuce_count, boundRect))
+
+                # Get the dimensions of the bounding rect:
+                rectX = boundRect[0]
+                rectY = boundRect[1]
+                rectWidth = boundRect[2]
+                rectHeight = boundRect[3]
+
+                # Draw bounding rect:
+                color = (0, 0, 255)
+                cv2.rectangle(visual, (int(rectX), int(rectY)),
+                            (int(rectX + rectWidth), int(rectY + rectHeight)), color, 2)
+
+
         cv2.imshow("mask", mask)
+        cv2.imshow("visual", visual)
         cv2.imshow("raw_combined", combined_image)
         cv2.waitKey(20)
     except CvBridgeError as e:
