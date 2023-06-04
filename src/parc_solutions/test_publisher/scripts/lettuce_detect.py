@@ -65,7 +65,7 @@ def image_callback_r(msg):
         mask = cv2.inRange(hsv, lower_bound, upper_bound)
 
         # define kernel size
-        kernel = np.ones((7, 7), np.uint8)
+        kernel = np.ones((6, 6), np.uint8)
 
         # Remove unnecessary noise from mask
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
@@ -98,9 +98,6 @@ def image_callback_r(msg):
         left_object_data = []
         right_object_data = []
 
-        # ObjectCounter:
-        lettuce_count = len(contours)
-
         for c in contours:
             # Get the contour's bounding rectangle:
             bound_rect = cv2.boundingRect(c)
@@ -116,10 +113,10 @@ def image_callback_r(msg):
 
                 # Store in list:
                 if rectX in range(left_raw_image.shape[0]):
-                    left_object_data.append((lettuce_count, bound_rect))
+                    left_object_data.append(bound_rect)
                     color = (0, 0, 255)
                 else:
-                    right_object_data.append((lettuce_count, bound_rect))
+                    right_object_data.append(bound_rect)
                     color = (255, 0, 0)
 
                 # Draw bounding rect:
@@ -134,6 +131,38 @@ def image_callback_r(msg):
                                      (int(rectX) + 8, int(rectY) + 20),
                                      cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2,
                                      cv2.LINE_AA)
+
+        # Left inner points
+        left_inner_lettuce_points = []
+        right_inner_lettuce_points = []
+
+        for idx, obj in enumerate(left_object_data):
+            left_inner_lettuce_points.append((obj[0] + obj[2],
+                                              obj[1] + obj[3] // 2))
+
+            visual = cv2.circle(visual,
+                                (obj[0] + obj[2], obj[1] + obj[3] // 2), 10,
+                                (255, 255, 0), -1)
+
+            visual = cv2.putText(visual, str(idx),
+                                 (obj[0] + obj[2], obj[1] + obj[3] // 2),
+                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                                 (255, 255, 255), 2,
+                                 cv2.LINE_AA)
+
+        for idx, obj in enumerate(right_object_data):
+            right_inner_lettuce_points.append((obj[0],
+                                              obj[1] + obj[3] // 2))
+
+            visual = cv2.circle(visual,
+                                (obj[0], obj[1] + obj[3] // 2), 10,
+                                (255, 0, 255), -1)
+
+            visual = cv2.putText(visual, str(idx),
+                                 (obj[0], obj[1] + obj[3] // 2),
+                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                                 (255, 255, 255), 2,
+                                 cv2.LINE_AA)
 
         # FPS
         visual = cv2.putText(visual, f"{round(fps, 2)} FPS", (0, 20),
