@@ -5,6 +5,7 @@ Kevin's Lettuce Detector
 """
 
 import time
+import math
 
 import cv2
 import numpy as np
@@ -19,6 +20,10 @@ MIN_LETTUCE_AREA = 6000
 ROBOT_WIDTH = 350
 ROBOT_HEIGHT = 505
 ROBOT_OFFSET_FROM_TOP = 12
+
+
+def average_points(p1, p2):
+    return ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
 
 
 def start_node():
@@ -163,6 +168,29 @@ def image_callback_r(msg):
                                  cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                                  (255, 255, 255), 2,
                                  cv2.LINE_AA)
+
+        # Distance calcs
+        shortest_left_point = left_inner_lettuce_points[0]
+        for point in left_inner_lettuce_points:
+            if math.dist(point, robot_top_center) < \
+               math.dist(shortest_left_point, robot_top_center):
+                shortest_left_point = point
+
+        shortest_right_point = right_inner_lettuce_points[0]
+        for point in right_inner_lettuce_points:
+            if math.dist(point, robot_top_center) < \
+               math.dist(shortest_right_point, robot_top_center):
+                shortest_right_point = point
+
+        visual = cv2.circle(visual, shortest_left_point, 10,
+                            (127, 127, 127), -1)
+
+        visual = cv2.circle(visual, shortest_right_point, 10,
+                            (127, 127, 127), -1)
+
+        visual = cv2.circle(visual, average_points(shortest_left_point,
+                                                   shortest_right_point), 10,
+                            (255, 127, 127), -1)
 
         # FPS
         visual = cv2.putText(visual, f"{round(fps, 2)} FPS", (0, 20),
