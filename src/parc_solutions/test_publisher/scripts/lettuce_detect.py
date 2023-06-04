@@ -12,6 +12,7 @@ import numpy as np
 import rospy
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
+from geometry_msgs.msg import Twist
 
 bridge = CvBridge()
 
@@ -45,6 +46,9 @@ def image_callback_l(msg):
 def image_callback_r(msg):
     print("Got Right", time.time())
     global right_raw_image, last_frame_time
+    global shortest_right_point
+    global shortest_left_point
+    global robot_top_center
 
     fps = 1 / (time.time() - last_frame_time)
     last_frame_time = time.time()
@@ -209,11 +213,37 @@ if __name__ == '__main__':
     left_raw_image = None
     right_raw_image = None
     last_frame_time = 0
+    shortest_left_point = (0, 0)
+    shortest_right_point = (0, 0)
+    robot_top_center = (0, 0)
 
     try:
         start_node()
         rospy.Subscriber("/left_camera/image_raw", Image, image_callback_l)
         rospy.Subscriber("/right_camera/image_raw", Image, image_callback_r)
+        pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+
+        # Set publish rate at 10 Hz
+        rate = rospy.Rate(10)
+
+        move_cmd = Twist()
+        move_cmd.linear.x = 0.1
+        now = time.time()
+
+        # Main loop
+        while True:
+            move_cmd.linear.x = 0.2
+
+            if average_points(shortest_left_point, shortest_right_point)[0] > robot_top_center[0]:
+                print("right")
+                move_cmd.angular.z = -0.05
+            else:
+                print("left")
+                move_cmd.angular.z = 0.05
+
+            pub.publish(move_cmd)
+            rate.sleep()
+
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
