@@ -22,6 +22,8 @@ ROBOT_WIDTH = 350
 ROBOT_HEIGHT = 505
 ROBOT_OFFSET_FROM_TOP = 12
 
+MAX_DISTANCE_BEFORE_STOP = 500
+
 
 def average_points(p1, p2):
     return ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
@@ -174,13 +176,21 @@ def image_callback_r(msg):
                                  cv2.LINE_AA)
 
         # Distance calcs
-        shortest_left_point = left_inner_lettuce_points[0]
+        if len(left_inner_lettuce_points) >= 1:
+            shortest_left_point = left_inner_lettuce_points[0]
+        else:
+            shortest_left_point = None
+
         for point in left_inner_lettuce_points:
             if math.dist(point, robot_top_center) < \
                math.dist(shortest_left_point, robot_top_center):
                 shortest_left_point = point
 
-        shortest_right_point = right_inner_lettuce_points[0]
+        if len(right_inner_lettuce_points) >= 1:
+            shortest_right_point = right_inner_lettuce_points[0]
+        else:
+            shortest_right_point = None
+
         for point in right_inner_lettuce_points:
             if math.dist(point, robot_top_center) < \
                math.dist(shortest_right_point, robot_top_center):
@@ -192,9 +202,11 @@ def image_callback_r(msg):
         visual = cv2.circle(visual, shortest_right_point, 10,
                             (127, 127, 127), -1)
 
-        visual = cv2.circle(visual, average_points(shortest_left_point,
-                                                   shortest_right_point), 10,
-                            (255, 127, 127), -1)
+        if shortest_left_point and shortest_right_point:
+            visual = cv2.circle(visual,
+                                average_points(shortest_left_point,
+                                               shortest_right_point), 10,
+                                (255, 127, 127), -1)
 
         # FPS
         visual = cv2.putText(visual, f"{round(fps, 2)} FPS", (0, 20),
@@ -232,14 +244,34 @@ if __name__ == '__main__':
 
         # Main loop
         while True:
-            move_cmd.linear.x = 0.2
+            if shortest_left_point and shortest_right_point:
+                average = average_points(shortest_left_point,
+                                         shortest_right_point)
+                distance = math.dist(average, robot_top_center)
+            else:
+                average = None
 
-            if average_points(shortest_left_point, shortest_right_point)[0] > robot_top_center[0]:
+            if not average:
+                print("stop")
+                move_cmd.angular.z = 0
+                move_cmd.linear.x = 0
+                pub.publish(move_cmd)
+                rate.sleep()
+                continue
+            elif average[0] > robot_top_center[0] and \
+                    (distance < MAX_DISTANCE_BEFORE_STOP):
                 print("right")
                 move_cmd.angular.z = -0.05
-            else:
+                move_cmd.linear.x = 0.2
+            elif average[0] < robot_top_center[0] and \
+                    (distance < MAX_DISTANCE_BEFORE_STOP):
                 print("left")
                 move_cmd.angular.z = 0.05
+                move_cmd.linear.x = 0.2
+            else:
+                print("stop")
+                move_cmd.angular.z = 0
+                move_cmd.linear.x = 0
 
             pub.publish(move_cmd)
             rate.sleep()

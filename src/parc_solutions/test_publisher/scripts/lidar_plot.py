@@ -7,8 +7,8 @@ from sensor_msgs.msg import LaserScan
 
 def main():
     rospy.init_node('scan_values')
-    sub = rospy.Subscriber('/scan', LaserScan, callback)
-    
+    rospy.Subscriber('/scan', LaserScan, callback)
+
     while True:
         # Generating the X and Y axis data points
         r = ranges
@@ -18,7 +18,8 @@ def main():
 
         # plotting the polar coordinates on the system
         plt.cla()
-        plt.polar(theta, r, marker='o', mfc='r', mec='r', ms=1, color='#00000000')
+        plt.polar(theta, r, marker='o', mfc='r', mec='r', ms=1,
+                  color='#00000000')
 
         # Setting the axis limit
         ax.set_ylim(0, 16)
@@ -26,6 +27,7 @@ def main():
         # Displaying the plot
         plt.draw()
         plt.pause(0.1)
+
 
 def callback(msg):
     global ranges, angle_inc
@@ -50,7 +52,7 @@ if __name__ == '__main__':
 
     ranges = []
     angle_inc = 0
-    
+
     try:
         main()
     except rospy.ROSInterruptException:
