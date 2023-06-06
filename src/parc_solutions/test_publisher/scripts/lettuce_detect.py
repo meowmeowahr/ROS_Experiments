@@ -72,8 +72,12 @@ def image_callback_r(msg):
         lower_bound = np.array([40, 20, 20])
         upper_bound = np.array([80, 255, 255])
 
+        lower_bound2 = np.array([6, 63, 0])
+        upper_bound2 = np.array([23, 255, 180])
+
         # find the colors within the boundaries
         mask = cv2.inRange(hsv, lower_bound, upper_bound)
+        mask2 = cv2.inRange(hsv, lower_bound2, upper_bound2)
 
         # define kernel size
         kernel = np.ones((6, 6), np.uint8)
@@ -81,6 +85,11 @@ def image_callback_r(msg):
         # Remove unnecessary noise from mask
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+        mask2 = cv2.morphologyEx(mask2, cv2.MORPH_CLOSE, kernel)
+        mask2 = cv2.morphologyEx(mask2, cv2.MORPH_OPEN, kernel)
+
+        mask = cv2.addWeighted(mask, 1, mask2, 1, 0)
 
         # Generate axis lines
         visual = mask.copy()
